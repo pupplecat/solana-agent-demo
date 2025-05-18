@@ -1,0 +1,5 @@
+[workspace]
+members = ["libs/*"]
+resolver = "2"
+
+[workspace.dependencies]

@@ -1,0 +1,8 @@
+[package]
+name = "solana-agent"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name="solana_agent"
+
