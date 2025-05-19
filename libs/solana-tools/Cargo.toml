@@ -1,23 +1,23 @@
 [package]
 name = "solana-tools"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [lib]
-name="solana_tools"
+name = "solana_tools"
 
 [dependencies]
-solana-account-decoder = {workspace = true}
-solana-client={workspace=true}
-solana-sdk = {workspace=true}
-solana-transaction-status-client-types = {workspace = true}
-spl-associated-token-account = {workspace=true}
-spl-token = {workspace=true}
+solana-account-decoder = { workspace = true }
+solana-client = { workspace = true }
+solana-sdk = { workspace = true }
+solana-transaction-status-client-types = { workspace = true }
+spl-associated-token-account = { workspace = true }
+spl-token = { workspace = true }
 
-anyhow = {workspace = true}
-rig-core = {workspace=true}
-schemars = {workspace=true}
-serde = {workspace=true}
-serde_json = {workspace=true}
-tokio = {workspace=true}
-yart = {workspace=true}
+anyhow = { workspace = true }
+rig-core = { workspace = true }
+schemars = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+yart = { workspace = true }

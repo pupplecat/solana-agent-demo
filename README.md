@@ -8,12 +8,15 @@ This demo showcases a Rust application using the `ratatui` library for a termina
 
 ## Prerequisites
 
-- Rust (latest stable version)
+- Rust (latest stable version) for building from source
 - Solana CLI (for wallet setup)
 - An API key for Gemini (from Google AI Studio)
 - Environment variable management (e.g., `direnv` or manual `.env` file)
+- Docker (for no-code setup)
 
 ## Installation
+
+### Option 1: Build from Source
 
 1. **Clone the Repository**
 
@@ -40,7 +43,7 @@ This demo showcases a Rust application using the `ratatui` library for a termina
 
    - Replace `/path/to/your/wallet.json` with the path to your Solana keypair file.
    - Obtain the `GEMINI_API_KEY` from Google AI Studio and set `MAX_TOKENS` as needed.
-MAX_TOKENS=1048
+
 4. **Initialize Solana Wallet**
    Ensure your wallet is configured with the Solana CLI:
 
@@ -50,13 +53,51 @@ MAX_TOKENS=1048
 
    Export your keypair as a JSON file and update the `WALLET_KEYPAIR` path.
 
-## Usage
+### Option 2: No-Code Setup with Docker
 
-1. **Run the Application**
+For users who prefer not to build from source, you can run the application using Docker:
+
+1. **Install Docker**
+   Ensure Docker is installed on your system. Follow the [official Docker installation guide](https://docs.docker.com/get-docker/).
+
+2. **Prepare Environment Variables**
+   Create a `.env` file in the project root with the following:
+
+   ```env
+   WALLET_KEYPAIR=/wallet.json
+   RPC_URL=https://api.devnet.solana.com
+   GEMINI_API_KEY=your_gemini_api_key
+   MAX_TOKENS=1048
+   ```
+
+   - Set `WALLET_KEYPAIR` to /wallet.json, which is the path inside the Docker container where the wallet file will be mounted.
+
+   - Obtain the `GEMINI_API_KEY` from Google AI Studio and set `MAX_TOKENS` as needed.
+
+3. **Build the Docker Image**
 
    ```bash
-   cargo run --example agent_chat
+   docker build -t solana-agent-demo .
    ```
+
+4. **Run the Container**
+
+   ```bash
+   docker run -it --env-file .env -v /path/to/your/wallet.json:/wallet.json solana-agent-demo
+   ```
+
+   - The `-v` flag mounts your wallet file into the container. Update `/path/to/your/wallet.json` to match your actual file path. For example `${PWD}/keys/wallet.json`
+
+## Usages
+
+1. **Run the Application**
+   - If built from source:
+
+     ```bash
+     cargo run --example agent_chat
+     ```
+
+   - If using Docker, follow the no-code setup steps above.
 
 2. **Interact with the UI**
    - Press `e` to enter editing mode and type commands (e.g., "what is my wallet address?", "help me get all token accounts").
@@ -67,7 +108,6 @@ MAX_TOKENS=1048
 
 3. **Example Commands**
    - "what is my wallet address?" - Displays your Solana wallet address.
-   - "How much SOL do I have? If none, help request 3 airdrop" - Check SOL balance, and request airdrop if balance is zero
    - "help me get all token accounts" - Lists token accounts and their balances.
    - "I want to transfer 50 of [mint] to [wallet]" - Initiates a token transfer.
    - "what is my remain balance?" - Checks the remaining balance of the last-mentioned token.
@@ -86,6 +126,7 @@ MAX_TOKENS=1048
 - **API Key Issues**: Verify your `GEMINI_API_KEY` is valid and has sufficient quota.
 - **Wallet Errors**: Check your `WALLET_KEYPAIR` file path and Solana RPC connection.
 - **Long Messages**: If messages don't wrap, resize the terminal or report a bug.
+- **Docker Issues**: Ensure Docker is running, and the wallet file path is correctly mounted.
 
 ## Contributing
 
