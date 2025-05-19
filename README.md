@@ -6,6 +6,8 @@ A terminal-based Solana wallet management interface powered by a Gemini AI agent
 
 This demo showcases a Rust application using the `ratatui` library for a terminal UI and the `rig` framework to integrate a Gemini AI agent. The agent assists with Solana blockchain operations, leveraging tools like token account management, balance checks, and transactions. The interface supports word-wrapped messages, context-aware responses, and a user-friendly layout with the input box at the bottom.
 
+- **Presentation:** https://pupplecat.github.io/solana-agent-demo/
+
 ## Prerequisites
 
 - Rust (latest stable version) for building from source
