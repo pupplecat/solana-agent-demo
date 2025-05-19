@@ -1,0 +1,31 @@
+[package]
+name = "solana-agent"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "solana_agent"
+
+[dependencies]
+solana-client = { workspace = true }
+solana-sdk = { workspace = true }
+
+anyhow = { workspace = true }
+chrono = { workspace = true }
+color-eyre = { workspace = true }
+crossterm = { workspace = true }
+dotenvy = { workspace = true }
+ratatui = { workspace = true }
+rig-core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+textwrap = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+solana-tools = { workspace = true }
+
+[[example]]
+name = "agent_chat"
+path = "examples/agent_chat.rs"

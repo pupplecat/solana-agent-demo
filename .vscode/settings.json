@@ -1,0 +1,9 @@
+{
+    "[markdown]": {
+        "editor.formatOnSave": false,
+        "editor.formatOnPaste": false,
+    },
+    "slidev.include": [
+        "**/slides.md",
+    ],
+}
