@@ -7,8 +7,10 @@ edition = "2024"
 name="solana_tools"
 
 [dependencies]
+solana-account-decoder = {workspace = true}
 solana-client={workspace=true}
 solana-sdk = {workspace=true}
+solana-transaction-status-client-types = {workspace = true}
 spl-associated-token-account = {workspace=true}
 spl-token = {workspace=true}
 

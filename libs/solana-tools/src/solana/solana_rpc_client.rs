@@ -1,9 +1,12 @@
-use std::collections::HashSet;
 use std::time::Duration;
+use std::{collections::HashSet, str::FromStr};
 
 use anyhow::Result;
-use solana_client::nonblocking::rpc_client::RpcClient;
+use solana_account_decoder::{UiAccountData, parse_token::UiTokenAccount};
+use solana_client::{nonblocking::rpc_client::RpcClient, rpc_request::TokenAccountsFilter};
 use solana_sdk::{
+    commitment_config::CommitmentConfig,
+    hash::Hash,
     instruction::Instruction,
     program_pack::{IsInitialized, Pack},
     pubkey::Pubkey,
@@ -12,16 +15,22 @@ use solana_sdk::{
     system_instruction,
     transaction::Transaction,
 };
+use solana_transaction_status_client_types::UiTransactionEncoding;
 use spl_associated_token_account::{
     get_associated_token_address_with_program_id, instruction::create_associated_token_account,
 };
-use spl_token::{state::Mint, ui_amount_to_amount};
+use spl_token::{
+    instruction::{initialize_mint, mint_to},
+    state::Mint,
+    ui_amount_to_amount,
+};
 use tokio::time::{sleep, timeout};
 
 use crate::solana::types::TokenAmount;
 
-/// A client for interacting with the Solana network using an RPC endpoint and a wallet keypair.
+use super::types::{TokenAccountDetails, TransactionDetails};
 
+/// A client for interacting with the Solana network using an RPC endpoint and a wallet keypair.
 pub struct SolanaRpcClient {
     pub rpc_client: RpcClient,
     pub wallet: Keypair,
@@ -158,7 +167,7 @@ impl SolanaRpcClient {
     pub async fn get_balance(&self, mint_pubkey: Option<Pubkey>) -> Result<TokenAmount> {
         let wallet_pubkey = self.get_wallet_pubkey();
         let balance = if let Some(mint) = mint_pubkey {
-            let (mint_account, token_program_id) = self.get_mint_account(&mint).await?;
+            let (_, token_program_id) = self.get_mint_account(&mint).await?;
             let token_account_pubkey = get_associated_token_address_with_program_id(
                 &wallet_pubkey,
                 &mint,
@@ -198,18 +207,23 @@ impl SolanaRpcClient {
 
         Ok(TokenAmount {
             amount: balance.0,
-            decimal: balance.1,
+            decimals: balance.1,
         })
     }
 
     /// Requests an airdrop of SOL to the wallet.
     ///
     /// # Arguments
-    /// * `lamports` - The amount of lamports to request.
+    /// * `amount` - The amount of SOL to request.
     ///
     /// # Returns
     /// A `Result` containing the transaction signature or an error if the airdrop fails or times out.
-    pub async fn request_airdrop(&self, lamports: u64) -> Result<Signature> {
+    pub async fn request_airdrop(&self, amount: f64) -> Result<Signature> {
+        if amount <= 0.0 {
+            return Err(anyhow::anyhow!("Airdrop amount must be positive"));
+        }
+
+        let lamports = ui_amount_to_amount(amount, 9);
         let wallet_pubkey = self.get_wallet_pubkey();
         let signature = self
             .rpc_client
@@ -327,5 +341,271 @@ impl SolanaRpcClient {
         };
 
         Ok(signature)
+    }
+
+    /// Creates a new SPL token mint.
+    ///
+    /// # Arguments
+    /// * `decimals` - The number of decimal places for the token.
+    /// * `mint_authority` - Optional public key of the mint authority. Defaults to the wallet's pubkey.
+    ///
+    /// # Returns
+    /// A `Result` containing the transaction signature and the mint pubkey, or an error if the operation fails.
+    pub async fn create_mint(
+        &self,
+        decimals: u8,
+        mint_authority: Option<Pubkey>,
+    ) -> Result<(Signature, Pubkey)> {
+        let wallet_pubkey = self.get_wallet_pubkey();
+        let mint_authority = mint_authority.unwrap_or(wallet_pubkey);
+        let mint_keypair = Keypair::new();
+        let mint_pubkey = mint_keypair.pubkey();
+        let rent_exempt_balance = self
+            .rpc_client
+            .get_minimum_balance_for_rent_exemption(Mint::LEN)
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to get rent-exempt balance: {}", e))?;
+
+        let instructions = vec![
+            // Create account for the mint
+            system_instruction::create_account(
+                &wallet_pubkey,
+                &mint_pubkey,
+                rent_exempt_balance,
+                Mint::LEN as u64,
+                &spl_token::id(),
+            ),
+            // Initialize the mint
+            initialize_mint(
+                &spl_token::id(),
+                &mint_pubkey,
+                &mint_authority,
+                None, // No freeze authority
+                decimals,
+            )?,
+        ];
+
+        let signature = self
+            .process_instructions(&instructions, &vec![&mint_keypair], None)
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to create mint {}: {}", mint_pubkey, e))?;
+
+        Ok((signature, mint_pubkey))
+    }
+
+    /// Mints tokens to a specified wallet's associated token account.
+    ///
+    /// # Arguments
+    /// * `mint` - The public key of the token mint.
+    /// * `to_wallet` - The public key of the recipient wallet.
+    /// * `amount` - The amount of tokens to mint (in UI amount, e.g., 100.5 tokens).
+    ///
+    /// # Returns
+    /// A `Result` containing the transaction signature, or an error if the operation fails.
+    pub async fn mint_to(
+        &self,
+        mint: &Pubkey,
+        to_wallet: &Pubkey,
+        amount: f64,
+    ) -> Result<Signature> {
+        if amount <= 0.0 {
+            return Err(anyhow::anyhow!("Mint amount must be positive"));
+        }
+
+        let (mint_account, token_program_id) = self.get_mint_account(mint).await?;
+        let wallet_pubkey = self.get_wallet_pubkey();
+        let to_token_account =
+            get_associated_token_address_with_program_id(to_wallet, mint, &token_program_id);
+
+        let mut instructions = if self
+            .rpc_client
+            .get_account(&to_token_account)
+            .await
+            .is_err()
+        {
+            vec![create_associated_token_account(
+                &wallet_pubkey,
+                to_wallet,
+                mint,
+                &token_program_id,
+            )]
+        } else {
+            vec![]
+        };
+
+        let amount_lamports = ui_amount_to_amount(amount, mint_account.decimals);
+        instructions.push(mint_to(
+            &token_program_id,
+            mint,
+            &to_token_account,
+            &wallet_pubkey,
+            &[],
+            amount_lamports,
+        )?);
+
+        let signature = self
+            .process_instructions(&instructions, &vec![], None)
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to mint to {}: {}", to_token_account, e))?;
+
+        Ok(signature)
+    }
+
+    /// Creates an associated token account for a wallet and mint.
+    ///
+    /// # Arguments
+    /// * `wallet` - The public key of the wallet to create the ATA for.
+    /// * `mint` - The public key of the token mint.
+    ///
+    /// # Returns
+    /// A `Result` containing the transaction signature and the ATA pubkey, or an error if the operation fails.
+    pub async fn create_associated_token_account(
+        &self,
+        wallet: &Pubkey,
+        mint: &Pubkey,
+    ) -> Result<(Signature, Pubkey)> {
+        let account = self.rpc_client.get_account(mint).await?;
+        let token_program_id = account.owner;
+        let ata_pubkey =
+            get_associated_token_address_with_program_id(wallet, mint, &token_program_id);
+        let wallet_pubkey = self.get_wallet_pubkey();
+
+        if self.rpc_client.get_account(&ata_pubkey).await.is_ok() {
+            return Err(anyhow::anyhow!(
+                "Associated token account {} already exists",
+                ata_pubkey
+            ));
+        }
+
+        let instruction =
+            create_associated_token_account(&wallet_pubkey, wallet, mint, &token_program_id);
+
+        let signature = self
+            .process_instruction(instruction, &vec![], None)
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to create ATA {}: {}", ata_pubkey, e))?;
+
+        Ok((signature, ata_pubkey))
+    }
+
+    /// Retrieves the latest blockhash and its last valid block height.
+    ///
+    /// # Returns
+    /// A `Result` containing the blockhash and last valid block height, or an error if the query fails.
+    pub async fn get_block_hash(&self) -> Result<(Hash, u64)> {
+        let (blockhash, last_valid_block_height) = self
+            .rpc_client
+            .get_latest_blockhash_with_commitment(CommitmentConfig::confirmed())
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to get blockhash: {}", e))?;
+
+        Ok((blockhash, last_valid_block_height))
+    }
+
+    /// Retrieves all token accounts owned by the wallet, optionally filtered by mint.
+    ///
+    /// # Arguments
+    /// * `mint_pubkey` - Optional public key of the token mint to filter by.
+    ///
+    /// # Returns
+    /// A `Result` containing a vector of token account details, or an error if the query fails.
+    pub async fn get_token_accounts(
+        &self,
+        mint_pubkey: Option<Pubkey>,
+    ) -> Result<Vec<TokenAccountDetails>> {
+        let wallet_pubkey = self.get_wallet_pubkey();
+        let token_accounts = if let Some(mint) = mint_pubkey {
+            self.rpc_client
+                .get_token_accounts_by_owner(&wallet_pubkey, TokenAccountsFilter::Mint(mint))
+                .await
+                .map_err(|e| {
+                    anyhow::anyhow!("Failed to get token accounts for mint {}: {}", mint, e)
+                })?
+        } else {
+            self.rpc_client
+                .get_token_accounts_by_owner(
+                    &wallet_pubkey,
+                    TokenAccountsFilter::ProgramId(spl_token::id()),
+                )
+                .await
+                .map_err(|e| {
+                    anyhow::anyhow!(
+                        "Failed to get token accounts for wallet {}: {}",
+                        wallet_pubkey,
+                        e
+                    )
+                })?
+        };
+
+        let mut details = vec![];
+        for account in token_accounts {
+            let UiAccountData::Json(json_data) = &account.account.data else {
+                return Err(anyhow::anyhow!("non-JSON token account data returned"));
+            };
+
+            let info = json_data
+                .parsed
+                .get("info")
+                .ok_or(anyhow::anyhow!("missing 'info' field"))?;
+            let token_account = serde_json::from_value::<UiTokenAccount>(info.clone())?;
+
+            let amount = token_account
+                .token_amount
+                .amount
+                .parse()
+                .map_err(|e| anyhow::anyhow!("Failed to parse token amount: {}", e))?;
+            let mint = Pubkey::from_str(&token_account.mint)
+                .map_err(|e| anyhow::anyhow!("Failed to parse mint pubkey: {}", e))?;
+            let (mint_account, _) = self.get_mint_account(&mint).await?;
+
+            details.push(TokenAccountDetails {
+                pubkey: Pubkey::from_str(&account.pubkey)
+                    .map_err(|e| anyhow::anyhow!("Failed to parse token amount: {}", e))?,
+                mint,
+                amount,
+                decimals: mint_account.decimals,
+            });
+        }
+
+        Ok(details)
+    }
+
+    /// Retrieves details of a transaction by its signature.
+    ///
+    /// # Arguments
+    /// * `signature` - The transaction signature.
+    ///
+    /// # Returns
+    /// A `Result` containing the transaction details, or an error if the query fails.
+    pub async fn get_transaction(&self, signature: &Signature) -> Result<TransactionDetails> {
+        let transaction = self
+            .rpc_client
+            .get_transaction_with_config(
+                signature,
+                solana_client::rpc_config::RpcTransactionConfig {
+                    commitment: Some(CommitmentConfig::confirmed()),
+                    max_supported_transaction_version: Some(0),
+                    encoding: Some(UiTransactionEncoding::Json),
+                },
+            )
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to get transaction {}: {}", signature, e))?;
+
+        let status = match transaction.transaction.meta {
+            Some(meta) => {
+                if meta.err.is_some() {
+                    "Failed".to_string()
+                } else {
+                    "Confirmed".to_string()
+                }
+            }
+            None => "Unknown".to_string(),
+        };
+
+        Ok(TransactionDetails {
+            status,
+            slot: transaction.slot,
+            block_time: transaction.block_time,
+        })
     }
 }
