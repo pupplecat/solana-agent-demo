@@ -102,7 +102,7 @@ transition: slide-up
  json-schema  │ : │ : │ :
               │ : │ : │ :
             ┌─▼─:─▼─:─▼─:─┐
-            │    AGENT    │          Question:   Help creat a mint with 6 decimal point, mint 500 tokens to my wallet
+            │    AGENT    │          Question:   Help create a mint with 6 decimal point, mint 500 tokens to my wallet
             └─────────────┘                      , and then transfer 250 to wallet Cjbt...
 
                                Internal Query:   - create_mint
@@ -134,7 +134,7 @@ transition: slide-up
 
 ::right::
 
-## Code Snippet: Tool Attachment
+#### **Code Snippet: Tool Attachment**
 
 ```rust
 let solana_agent = gemini_client
