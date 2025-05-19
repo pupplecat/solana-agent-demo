@@ -5,3 +5,17 @@ edition = "2024"
 
 [lib]
 name="solana_tools"
+
+[dependencies]
+solana-client={workspace=true}
+solana-sdk = {workspace=true}
+spl-associated-token-account = {workspace=true}
+spl-token = {workspace=true}
+
+anyhow = {workspace = true}
+rig-core = {workspace=true}
+schemars = {workspace=true}
+serde = {workspace=true}
+serde_json = {workspace=true}
+tokio = {workspace=true}
+yart = {workspace=true}

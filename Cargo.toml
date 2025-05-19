@@ -3,3 +3,18 @@ members = ["libs/*"]
 resolver = "2"
 
 [workspace.dependencies]
+solana-client="2.2.1"
+solana-sdk = "2.2.1"
+spl-associated-token-account = "7"
+spl-token = "8.0.0"
+
+anyhow = "1.0.98"
+dotenvy = "0.15.7"
+rig-core = "0.12.0"
+schemars = "0.8.21"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+tokio = "1.45.0"
+tracing = "0.1"
+tracing-subscriber = "0.3.19"
+yart = "0.1.1"
