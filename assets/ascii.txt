@@ -1,0 +1,135 @@
+              │                                                                                                                      │
+              │                                                                                                                      │
+              │                                                                                                                      │
+ ─────────────                                                                                                                        ────────────
+                                                                      :
+                                     ┌───────┐                        :                     ┌──────────┐
+                                     │  LLM  │                        :                     │  SOLANA  │
+                                     └───────┘                        :                     └──────────┘
+                                                                      :
+
+
+
+
+
+
+
+
+
+
+
+
+             │                                                                                                                      │
+             │                                                                                                                      │
+             │                                                                                                                      │
+─────────────                                                                                                                        ────────────
+                                     Question  ───────────►┌───────┐      Preamble:
+                                                           │  LLM  │
+                                     Response  ◄...........└─┬───▲─┘        You are a Solana assistant...
+                                                             │   :
+                                                             │   :
+                                                  json-schema│   :        Tools:
+                                                           ┌─▼───:─┐
+                                                           │ AGENT │        - Get Balance
+                                                           └───────┘        - Create Mint
+                                                                            - Transfer
+                                                                            - ...
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+             │                                                                                                                      │
+             │                                                                                                                      │
+             │                                                                                                                      │
+─────────────                                                                                                                        ────────────
+                                                     ┌──────────────────────┐
+                                                     │ rig-core             │
+                                            1.       │                      │          Preamble:
+                               Question  ───────────►│    ┌─────────────┐   │
+                                                     │    │     LLM     │   │            You are a Solana assistant...
+                               Response  ◄...........│    └─┬─▲─┬─▲─┬─▲─┘   │
+                                            3.       │      │ : │ : │ :     │ 2.
+                                                     │      │ : │ : │ :   multi-turn   Tools:
+                                                     │      │ : │ : │ :     │
+                                                     │    ┌─▼─:─▼─:─▼─:─┐   │            - Get Balance
+                                                     │    │    AGENT    │   │            - Create Mint
+                                                     │    └─────────────┘   │            - Transfer
+                                                     │                      │            - ...
+                                                     └──────────────────────┘
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+             │                                                                                                                      │
+             │                                                                                                                      │
+             │                                                                                                                      │
+─────────────                                                                                                                        ────────────
+
+                            multi-turn
+                         ┌─────────────┐          Question:   How much SOL do I have? If none, help request 3 airdrop.
+                         │     LLM     │
+                         └─┬─▲─┬─▲─┬─▲─┘    Internal Query:   - get_balance
+                           │ : │ : │ :                        - request_airdrop
+              json-schema  │ : │ : │ :
+                           │ : │ : │ :
+                         ┌─▼─:─▼─:─▼─:─┐
+                         │    AGENT    │          Question:   Help create a mint with 6 decimal point, mint 500 tokens to my wallet
+                         └─────────────┘                      , and then transfer 250 to wallet Cjbt...
+
+                                            Internal Query:   - create_mint
+                                                              - mint_to
+                                                              - transfer
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+             │                                                                                                                      │
+             │                                                                                                                      │
+             │                                                                                                                      │
+─────────────                                                                                                                        ────────────
+                                            ┌─────────────┐
+                                            │     LLM     │
+                                            └─┬─▲─┬─▲─┬─▲─┘
+                                              │ : │ : │ :
+                                              │ : │ : │ :
+                                              │ : │ : │ :
+                                            ┌─▼─:─▼─:─▼─:─┐          SSE            ┌────────────────┐
+                                            │    AGENT    ├────────────────────────►│   MCP-SERVER   │
+                                            └─────────────┘       json-rpc          └────────────────┘
+
+                                             - internal tools                        - external tools
