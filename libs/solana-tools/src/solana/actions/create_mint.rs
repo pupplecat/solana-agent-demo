@@ -1,8 +1,10 @@
 use std::{str::FromStr, sync::Arc};
 
 use anyhow::Result;
+use mcp_core::types::{TextContent, ToolResponseContent};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde_json::to_value;
 use solana_sdk::pubkey::Pubkey;
 
 use crate::solana::solana_rpc_client::SolanaRpcClient;
@@ -25,6 +27,19 @@ pub struct CreateMintResponse {
     signature: String,
 }
 
+impl Into<Vec<ToolResponseContent>> for CreateMintResponse {
+    fn into(self) -> Vec<ToolResponseContent> {
+        let content =
+            to_value(self).map_or(format!("Serializing response error"), |f| f.to_string());
+
+        vec![ToolResponseContent::Text(TextContent {
+            content_type: "text".to_string(),
+            text: content,
+            annotations: None,
+        })]
+    }
+}
+
 /// Creates a new SPL token mint.
 ///
 /// # Arguments
@@ -33,8 +48,7 @@ pub struct CreateMintResponse {
 ///
 /// # Returns
 /// A `Result` containing the mint pubkey and transaction signature or an error if the operation fails.
-#[yart::rig_tool(description = "Create a new SPL token mint")]
-async fn create_mint(
+async fn create_mint_inner(
     ctx: Arc<SolanaRpcClient>,
     args: CreateMintArgs,
 ) -> Result<CreateMintResponse> {
@@ -51,4 +65,20 @@ async fn create_mint(
         signature: signature.to_string(),
         mint_pubkey: mint_pubkey.to_string(),
     })
+}
+
+#[yart::rig_tool(description = "Create a new SPL token mint")]
+async fn create_mint_rig(
+    ctx: Arc<SolanaRpcClient>,
+    args: CreateMintArgs,
+) -> Result<CreateMintResponse> {
+    create_mint_inner(ctx, args).await
+}
+
+#[yart::mcp_tool(description = "Create a new SPL token mint")]
+async fn create_mint_mcp(
+    ctx: Arc<SolanaRpcClient>,
+    args: CreateMintArgs,
+) -> Result<CreateMintResponse> {
+    create_mint_inner(ctx, args).await
 }

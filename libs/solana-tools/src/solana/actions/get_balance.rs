@@ -1,8 +1,10 @@
 use std::{str::FromStr, sync::Arc};
 
 use anyhow::Result;
+use mcp_core::types::{TextContent, ToolResponseContent};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde_json::to_value;
 use solana_sdk::pubkey::Pubkey;
 
 use crate::solana::solana_rpc_client::SolanaRpcClient;
@@ -23,6 +25,19 @@ pub struct GetBalanceResponse {
     decimal: u8,
 }
 
+impl Into<Vec<ToolResponseContent>> for GetBalanceResponse {
+    fn into(self) -> Vec<ToolResponseContent> {
+        let content =
+            to_value(self).map_or(format!("Serializing response error"), |f| f.to_string());
+
+        vec![ToolResponseContent::Text(TextContent {
+            content_type: "text".to_string(),
+            text: content,
+            annotations: None,
+        })]
+    }
+}
+
 /// Retrieves the wallet's balance for SOL or an SPL token.
 ///
 /// # Arguments
@@ -31,8 +46,7 @@ pub struct GetBalanceResponse {
 ///
 /// # Returns
 /// A `Result` containing the balance as a `GetBalanceResponse` or an error if the query fails.
-#[yart::rig_tool(description = "Get wallet balance for SOL or SPL token")]
-async fn get_balance(
+async fn get_balance_inner(
     ctx: Arc<SolanaRpcClient>,
     args: GetBalanceArgs,
 ) -> Result<GetBalanceResponse> {
@@ -48,4 +62,20 @@ async fn get_balance(
         amount: token_amount.amount.to_string(),
         decimal: token_amount.decimals,
     })
+}
+
+#[yart::rig_tool(description = "Get wallet balance for SOL or SPL token")]
+async fn get_balance_rig(
+    ctx: Arc<SolanaRpcClient>,
+    args: GetBalanceArgs,
+) -> Result<GetBalanceResponse> {
+    get_balance_inner(ctx, args).await
+}
+
+#[yart::mcp_tool(description = "Get wallet balance for SOL or SPL token")]
+async fn get_balance_mcp(
+    ctx: Arc<SolanaRpcClient>,
+    args: GetBalanceArgs,
+) -> Result<GetBalanceResponse> {
+    get_balance_inner(ctx, args).await
 }

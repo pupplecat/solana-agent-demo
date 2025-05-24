@@ -1,8 +1,10 @@
 use std::{str::FromStr, sync::Arc};
 
 use anyhow::Result;
+use mcp_core::types::{TextContent, ToolResponseContent};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde_json::to_value;
 use solana_sdk::pubkey::Pubkey;
 
 use crate::solana::solana_rpc_client::SolanaRpcClient;
@@ -25,6 +27,19 @@ pub struct TransferResponse {
     signature: String,
 }
 
+impl Into<Vec<ToolResponseContent>> for TransferResponse {
+    fn into(self) -> Vec<ToolResponseContent> {
+        let content =
+            to_value(self).map_or(format!("Serializing response error"), |f| f.to_string());
+
+        vec![ToolResponseContent::Text(TextContent {
+            content_type: "text".to_string(),
+            text: content,
+            annotations: None,
+        })]
+    }
+}
+
 /// Transfers SOL or SPL tokens to another wallet.
 ///
 /// # Arguments
@@ -33,8 +48,7 @@ pub struct TransferResponse {
 ///
 /// # Returns
 /// A `Result` containing the transaction signature or an error if the transfer fails.
-#[yart::rig_tool(description = "Transfer SOL or SPL token to another wallet")]
-async fn transfer(ctx: Arc<SolanaRpcClient>, args: TransferArgs) -> Result<TransferResponse> {
+async fn transfer_inner(ctx: Arc<SolanaRpcClient>, args: TransferArgs) -> Result<TransferResponse> {
     let to_wallet = Pubkey::from_str(&args.to_wallet)
         .map_err(|e| anyhow::anyhow!("Invalid recipient pubkey: {}", e))?;
     if args.amount <= 0.0 {
@@ -52,4 +66,14 @@ async fn transfer(ctx: Arc<SolanaRpcClient>, args: TransferArgs) -> Result<Trans
     Ok(TransferResponse {
         signature: signature.to_string(),
     })
+}
+
+#[yart::rig_tool(description = "Transfer SOL or SPL token to another wallet")]
+async fn transfer_rig(ctx: Arc<SolanaRpcClient>, args: TransferArgs) -> Result<TransferResponse> {
+    transfer_inner(ctx, args).await
+}
+
+#[yart::mcp_tool(description = "Transfer SOL or SPL token to another wallet")]
+async fn transfer_mcp(ctx: Arc<SolanaRpcClient>, args: TransferArgs) -> Result<TransferResponse> {
+    transfer_inner(ctx, args).await
 }

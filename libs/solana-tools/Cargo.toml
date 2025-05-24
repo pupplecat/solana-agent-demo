@@ -16,6 +16,7 @@ spl-token = { workspace = true }
 
 anyhow = { workspace = true }
 rig-core = { workspace = true }
+mcp-core = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

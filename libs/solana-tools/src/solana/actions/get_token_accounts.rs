@@ -1,8 +1,10 @@
 use std::{str::FromStr, sync::Arc};
 
 use anyhow::Result;
+use mcp_core::types::{TextContent, ToolResponseContent};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde_json::to_value;
 use solana_sdk::pubkey::Pubkey;
 
 use crate::solana::solana_rpc_client::SolanaRpcClient;
@@ -34,6 +36,19 @@ pub struct GetTokenAccountsResponse {
     accounts: Vec<TokenAccount>,
 }
 
+impl Into<Vec<ToolResponseContent>> for GetTokenAccountsResponse {
+    fn into(self) -> Vec<ToolResponseContent> {
+        let content =
+            to_value(self).map_or(format!("Serializing response error"), |f| f.to_string());
+
+        vec![ToolResponseContent::Text(TextContent {
+            content_type: "text".to_string(),
+            text: content,
+            annotations: None,
+        })]
+    }
+}
+
 /// Retrieves all token accounts owned by the wallet, optionally filtered by mint.
 ///
 /// # Arguments
@@ -42,8 +57,7 @@ pub struct GetTokenAccountsResponse {
 ///
 /// # Returns
 /// A `Result` containing a list of token accounts or an error if the query fails.
-#[yart::rig_tool(description = "Get token accounts owned by the wallet")]
-async fn get_token_accounts(
+async fn get_token_accounts_inner(
     ctx: Arc<SolanaRpcClient>,
     args: GetTokenAccountsArgs,
 ) -> Result<GetTokenAccountsResponse> {
@@ -66,4 +80,20 @@ async fn get_token_accounts(
             })
             .collect(),
     })
+}
+
+#[yart::rig_tool(description = "Get token accounts owned by the wallet")]
+async fn get_token_accounts_rig(
+    ctx: Arc<SolanaRpcClient>,
+    args: GetTokenAccountsArgs,
+) -> Result<GetTokenAccountsResponse> {
+    get_token_accounts_inner(ctx, args).await
+}
+
+#[yart::mcp_tool(description = "Get token accounts owned by the wallet")]
+async fn get_token_accounts_mcp(
+    ctx: Arc<SolanaRpcClient>,
+    args: GetTokenAccountsArgs,
+) -> Result<GetTokenAccountsResponse> {
+    get_token_accounts_inner(ctx, args).await
 }

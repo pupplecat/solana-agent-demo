@@ -1,8 +1,10 @@
 use std::sync::Arc;
 
 use anyhow::Result;
+use mcp_core::types::{TextContent, ToolResponseContent};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde_json::to_value;
 
 use crate::solana::solana_rpc_client::SolanaRpcClient;
 
@@ -19,6 +21,19 @@ pub struct GetBlockhashResponse {
     last_valid_block_height: String,
 }
 
+impl Into<Vec<ToolResponseContent>> for GetBlockhashResponse {
+    fn into(self) -> Vec<ToolResponseContent> {
+        let content =
+            to_value(self).map_or(format!("Serializing response error"), |f| f.to_string());
+
+        vec![ToolResponseContent::Text(TextContent {
+            content_type: "text".to_string(),
+            text: content,
+            annotations: None,
+        })]
+    }
+}
+
 /// Retrieves the latest blockhash and its last valid block height.
 ///
 /// # Arguments
@@ -27,8 +42,7 @@ pub struct GetBlockhashResponse {
 ///
 /// # Returns
 /// A `Result` containing the blockhash and last valid block height or an error if the query fails.
-#[yart::rig_tool(description = "Get the latest blockhash")]
-async fn get_blockhash(
+async fn get_blockhash_inner(
     ctx: Arc<SolanaRpcClient>,
     _args: GetBlockhashArgs,
 ) -> Result<GetBlockhashResponse> {
@@ -37,4 +51,21 @@ async fn get_blockhash(
         blockhash: hash.to_string(),
         last_valid_block_height: block_height.to_string(),
     })
+}
+
+#[yart::rig_tool(description = "Get the latest blockhash")]
+
+async fn get_blockhash_rig(
+    ctx: Arc<SolanaRpcClient>,
+    args: GetBlockhashArgs,
+) -> Result<GetBlockhashResponse> {
+    get_blockhash_inner(ctx, args).await
+}
+
+#[yart::mcp_tool(description = "Get the latest blockhash")]
+async fn get_blockhash_mcp(
+    ctx: Arc<SolanaRpcClient>,
+    args: GetBlockhashArgs,
+) -> Result<GetBlockhashResponse> {
+    get_blockhash_inner(ctx, args).await
 }

@@ -86,6 +86,9 @@ For users who prefer not to build from source, you can run the application using
 
    ```bash
    docker run -it --env-file .env -v /path/to/your/wallet.json:/wallet.json solana-agent-demo
+
+   # example
+   docker run -it --env-file .env -v ${PWD}/keys/wallet.json:/app/keys/wallet.json solana-agent-demo
    ```
 
    - The `-v` flag mounts your wallet file into the container. Update `/path/to/your/wallet.json` to match your actual file path. For example `${PWD}/keys/wallet.json`

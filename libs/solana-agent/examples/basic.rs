@@ -11,8 +11,9 @@ use solana_agent::utils::load_keypair;
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_tools::{
     actions::{
-        CreateAssociatedTokenAccount, CreateMint, GetBalance, GetBlockhash, GetTokenAccounts,
-        GetTransaction, GetWalletAddress, MintTo, RequestAirdrop, Transfer,
+        CreateAssociatedTokenAccountRig, CreateMintRig, GetBalanceRig, GetBlockhashRig,
+        GetTokenAccountsRig, GetTransactionRig, GetWalletAddressRig, MintToRig, RequestAirdropRig,
+        TransferRig,
     },
     solana_rpc_client::SolanaRpcClient,
 };
@@ -55,16 +56,16 @@ async fn main() -> Result<()> {
         .agent(gemini::completion::GEMINI_2_0_FLASH)
         .preamble("You are a Solana assistant that helps users manage their wallet on the Solana blockchain. You can check balances, request airdrops, transfer SOL or tokens, create token mints, mint tokens, create associated token accounts, and fetch transaction or blockhash details. Use the provided tools to perform these actions accurately.")
         .max_tokens(max_tokens)
-        .tool(CreateAssociatedTokenAccount::new(solana_rpc_client.clone()))
-        .tool(CreateMint::new(solana_rpc_client.clone()))
-        .tool(GetBalance::new(solana_rpc_client.clone()))
-        .tool(GetBlockhash::new(solana_rpc_client.clone()))
-        .tool(GetTokenAccounts::new(solana_rpc_client.clone()))
-        .tool(GetTransaction::new(solana_rpc_client.clone()))
-        .tool(GetWalletAddress::new(solana_rpc_client.clone()))
-        .tool(MintTo::new(solana_rpc_client.clone()))
-        .tool(RequestAirdrop::new(solana_rpc_client.clone()))
-        .tool(Transfer::new(solana_rpc_client.clone()))
+        .tool(CreateAssociatedTokenAccountRig::new(solana_rpc_client.clone()))
+        .tool(CreateMintRig::new(solana_rpc_client.clone()))
+        .tool(GetBalanceRig::new(solana_rpc_client.clone()))
+        .tool(GetBlockhashRig::new(solana_rpc_client.clone()))
+        .tool(GetTokenAccountsRig::new(solana_rpc_client.clone()))
+        .tool(GetTransactionRig::new(solana_rpc_client.clone()))
+        .tool(GetWalletAddressRig::new(solana_rpc_client.clone()))
+        .tool(MintToRig::new(solana_rpc_client.clone()))
+        .tool(RequestAirdropRig::new(solana_rpc_client.clone()))
+        .tool(TransferRig::new(solana_rpc_client.clone()))
         .build();
 
     info!("Solana agent initialized");

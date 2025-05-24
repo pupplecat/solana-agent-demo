@@ -1,8 +1,10 @@
 use std::{str::FromStr, sync::Arc};
 
 use anyhow::Result;
+use mcp_core::types::{TextContent, ToolResponseContent};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde_json::to_value;
 use solana_sdk::signature::Signature;
 
 use crate::solana::solana_rpc_client::SolanaRpcClient;
@@ -25,6 +27,19 @@ pub struct GetTransactionResponse {
     block_time: Option<String>,
 }
 
+impl Into<Vec<ToolResponseContent>> for GetTransactionResponse {
+    fn into(self) -> Vec<ToolResponseContent> {
+        let content =
+            to_value(self).map_or(format!("Serializing response error"), |f| f.to_string());
+
+        vec![ToolResponseContent::Text(TextContent {
+            content_type: "text".to_string(),
+            text: content,
+            annotations: None,
+        })]
+    }
+}
+
 /// Retrieves details of a transaction by its signature.
 ///
 /// # Arguments
@@ -33,8 +48,7 @@ pub struct GetTransactionResponse {
 ///
 /// # Returns
 /// A `Result` containing the transaction details or an error if the query fails.
-#[yart::rig_tool(description = "Get transaction status and details")]
-async fn get_transaction(
+async fn get_transaction_inner(
     ctx: Arc<SolanaRpcClient>,
     args: GetTransactionArgs,
 ) -> Result<GetTransactionResponse> {
@@ -47,4 +61,20 @@ async fn get_transaction(
         slot: tx.slot.to_string(),
         block_time: tx.block_time.map_or(None, |b| Some(b.to_string())),
     })
+}
+
+#[yart::rig_tool(description = "Get transaction status and details")]
+async fn get_transaction_rig(
+    ctx: Arc<SolanaRpcClient>,
+    args: GetTransactionArgs,
+) -> Result<GetTransactionResponse> {
+    get_transaction_inner(ctx, args).await
+}
+
+#[yart::mcp_tool(description = "Get transaction status and details")]
+async fn get_transaction_mcp(
+    ctx: Arc<SolanaRpcClient>,
+    args: GetTransactionArgs,
+) -> Result<GetTransactionResponse> {
+    get_transaction_inner(ctx, args).await
 }
