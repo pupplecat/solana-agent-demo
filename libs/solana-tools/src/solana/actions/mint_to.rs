@@ -1,8 +1,10 @@
 use std::{str::FromStr, sync::Arc};
 
 use anyhow::Result;
+use mcp_core::types::{TextContent, ToolResponseContent};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde_json::to_value;
 use solana_sdk::pubkey::Pubkey;
 
 use crate::solana::solana_rpc_client::SolanaRpcClient;
@@ -25,6 +27,19 @@ pub struct MintToResponse {
     signature: String,
 }
 
+impl Into<Vec<ToolResponseContent>> for MintToResponse {
+    fn into(self) -> Vec<ToolResponseContent> {
+        let content =
+            to_value(self).map_or(format!("Serializing response error"), |f| f.to_string());
+
+        vec![ToolResponseContent::Text(TextContent {
+            content_type: "text".to_string(),
+            text: content,
+            annotations: None,
+        })]
+    }
+}
+
 /// Mints tokens to a specified wallet's associated token account.
 ///
 /// # Arguments
@@ -33,8 +48,7 @@ pub struct MintToResponse {
 ///
 /// # Returns
 /// A `Result` containing the transaction signature or an error if the operation fails.
-#[yart::rig_tool(description = "Mint tokens to a wallet's associated token account")]
-async fn mint_to(ctx: Arc<SolanaRpcClient>, args: MintToArgs) -> Result<MintToResponse> {
+async fn mint_to_inner(ctx: Arc<SolanaRpcClient>, args: MintToArgs) -> Result<MintToResponse> {
     let to_wallet = Pubkey::from_str(&args.to_wallet)
         .map_err(|e| anyhow::anyhow!("Invalid wallet pubkey: {}", e))?;
     let mint = Pubkey::from_str(&args.mint_pubkey)
@@ -48,4 +62,14 @@ async fn mint_to(ctx: Arc<SolanaRpcClient>, args: MintToArgs) -> Result<MintToRe
     Ok(MintToResponse {
         signature: signature.to_string(),
     })
+}
+
+#[yart::rig_tool(description = "Mint tokens to a wallet's associated token account")]
+async fn mint_to_rig(ctx: Arc<SolanaRpcClient>, args: MintToArgs) -> Result<MintToResponse> {
+    mint_to_inner(ctx, args).await
+}
+
+#[yart::mcp_tool(description = "Mint tokens to a wallet's associated token account")]
+async fn mint_to_mcp(ctx: Arc<SolanaRpcClient>, args: MintToArgs) -> Result<MintToResponse> {
+    mint_to_inner(ctx, args).await
 }
