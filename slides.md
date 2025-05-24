@@ -285,7 +285,7 @@ transition: slide-up
 More info: https://modelcontextprotocol.io/introduction
 
 ---
-layout: image-right
+layout: image-left
 image: ./assets/mcp.png
 transition: slide-up
 ---
@@ -326,9 +326,9 @@ transition: slide-up
 
 # Wrap-Up & Questions
 
-- **Summary**: Solana Agent Demo showcases the power of LLMs with tools!
-- **Call to Action**: Try the demo on GitHub.
-- **Q&A Invite**: Any questions? I’m happy to dive deeper!
+- Solana Agent Demo showcases the power of LLMs with tools!
+- Try the demo on GitHub.
+- Any questions? I’m happy to dive deeper!
 
 <div class="mt-6 text-center">
   <span class="text-gray-600">Thank you!</span>
