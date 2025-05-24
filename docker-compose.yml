@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  mcp_server:
+    image: solana-agent-demo
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.container
+    volumes:
+      - $PWD/keys/wallet.json:/app/keys/wallet.json
+    networks:
+      - solana-agent-network
+    entrypoint: ["/usr/local/bin/mcp_server"]
+    restart: unless-stopped
+
+  mcp_client:
+    image: solana-agent-demo
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - mcp_server
+    env_file:
+      - .env.container
+    networks:
+      - solana-agent-network
+    entrypoint: ["/usr/local/bin/mcp_client"]
+    tty: true
+    stdin_open: true
+    restart: unless-stopped
+
+networks:
+  solana-agent-network:
+    driver: bridge

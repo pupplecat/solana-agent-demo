@@ -99,7 +99,7 @@ async fn main() -> Result<()> {
     .build();
 
     let mcp_server_transport =
-        ServerSseTransport::new("127.0.0.1".to_string(), 3000, mcp_server_protocol);
+        ServerSseTransport::new("0.0.0.0".to_string(), 3000, mcp_server_protocol);
 
     let server_result = Server::start(mcp_server_transport).await;
 

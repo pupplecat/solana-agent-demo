@@ -1,3 +1,5 @@
+use std::env;
+
 use anyhow::Result;
 use mcp_core::{client::ClientBuilder, transport::ClientSseTransportBuilder};
 
@@ -23,11 +25,12 @@ async fn main() -> Result<()> {
     init_tracing();
     dotenvy::dotenv().ok();
 
+    let mcp_endpoint =
+        env::var("MCP_ENDPOINT").map_err(|_| anyhow::anyhow!("MCP Endpoint not set"))?;
+
     // Create the MCP client
-    let mcp_client = ClientBuilder::new(
-        ClientSseTransportBuilder::new("http://127.0.0.1:3000/sse".to_string()).build(),
-    )
-    .build();
+    let mcp_client =
+        ClientBuilder::new(ClientSseTransportBuilder::new(mcp_endpoint).build()).build();
     // Start the MCP client
     mcp_client.open().await?;
 

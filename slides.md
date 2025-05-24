@@ -24,6 +24,41 @@ background: './assets/cover.png'
 </div>
 
 ---
+layout: two-cols-header
+title: Introducing LLM and Solana
+transition: slide-up
+---
+
+#  LLM and Solana
+
+```
+
+                                                        :
+                       ┌───────┐                        :                     ┌──────────┐
+                       │  LLM  │                        :                     │  SOLANA  │
+                       └───────┘                        :                     └──────────┘
+                                                        :
+```
+::left::
+
+### LLM
+
+Conversational Genius
+
+- Excels at understanding and generating human-like responses.
+- Ideal for conversational interfaces but lacks direct system access.
+
+::right::
+
+### Solana
+
+Blockchain Powerhouse
+
+- High-speed, low-cost, and robust blockchain network.
+- Perfect for decentralized apps but not natively AI-friendly.
+
+
+---
 layout: center
 title: Why Provide Tools to Agents (LLMs)?
 transition: slide-up
@@ -203,7 +238,6 @@ pub struct MintToResponse {
 }
 ```
 
-
 ---
 layout: image-right
 image: ./assets/terminal-screenshot.png
@@ -220,6 +254,49 @@ transition: slide-up
 
 [pupplecat/solana-agent-demo](https://github.com/pupplecat/solana-agent-demo)
 
+---
+layout: default
+title: Enabling Tool Sharing with MCP
+transition: slide-up
+---
+
+# Enabling Tool Sharing with MCP
+
+- **MCP**: Model Context Protocol
+  - A standardized protocol that connects AI agents to external tools.
+  - Uses Server-Sent Events (SSE) for streaming to remote MCP servers.
+  - Communicates using JSON-RPC messages for seamless interaction.
+
+```text
+
+                               ┌─────────────┐
+                               │     LLM     │
+                               └─┬─▲─┬─▲─┬─▲─┘
+                                 │ : │ : │ :
+                                 │ : │ : │ :
+                                 │ : │ : │ :
+                               ┌─▼─:─▼─:─▼─:─┐          SSE            ┌────────────────┐
+                               │    AGENT    ├────────────────────────►│   MCP-SERVER   │
+                               └─────────────┘       json-rpc          └────────────────┘
+
+                                - internal tools                        - external tools
+                                                                                                                        ```
+
+More info: https://modelcontextprotocol.io/introduction
+
+---
+layout: image-right
+image: ./assets/mcp.png
+transition: slide-up
+---
+
+# Live Demo: Solana Agent With MCP!
+
+1. **Launch MCP Server**: Run the `mcp_server` example.
+1. **Launch MCP Client**: Run the `mcp_client` example on another terminal.
+2. **Check Wallet Address**: "what is my wallet address?"
+
+[pupplecat/solana-agent-demo](https://github.com/pupplecat/solana-agent-demo)
 
 ---
 layout: default
@@ -231,6 +308,7 @@ transition: slide-up
 
 - **Achievements**:
   - Seamless integration of LLM with Solana tools via `rig`.
+  - Multi agent with MCP (Model Context Protocol)
   - Context-aware responses (e.g., token inference, balance formatting).
   - Polished terminal UI with `ratatui` (word wrapping, input at bottom).
 - **Potential**:
@@ -238,7 +316,8 @@ transition: slide-up
   - Inspire other blockchain-AI integrations.
 - **Future Work**:
   - Add more tools (e.g., NFT management, Trading agent).
-  - Multi agent with MCP (Model Context Protocol)
+  - Service authentication
+  - Extend to A2A, agent-to-agent communication.
 
 ---
 layout: center
@@ -248,7 +327,7 @@ transition: slide-up
 # Wrap-Up & Questions
 
 - **Summary**: Solana Agent Demo showcases the power of LLMs with tools!
-- **Call to Action**: Open-source under MIT License, try the demo on GitHub.
+- **Call to Action**: Try the demo on GitHub.
 - **Q&A Invite**: Any questions? I’m happy to dive deeper!
 
 <div class="mt-6 text-center">
